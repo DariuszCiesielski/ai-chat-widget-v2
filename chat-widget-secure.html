@@ -1,372 +1,1168 @@
-{
-  "nodes": [
-    {
-      "parameters": {
-        "options": {}
-      },
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.4,
-      "position": [
-        -4272,
-        -480
-      ],
-      "id": "9629880d-c523-46da-96b6-c4ad38868f9f",
-      "name": "Respond to Webhook1",
-      "disabled": true
-    },
-    {
-      "parameters": {
-        "httpMethod": "POST",
-        "path": "e4ec00c3-9761-40de-92d2-8083d3c11218",
-        "responseMode": "responseNode",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.webhook",
-      "typeVersion": 2.1,
-      "position": [
-        -4288,
-        -304
-      ],
-      "id": "fc96f5b9-8613-47d0-af44-83b7999d13a5",
-      "name": "Webhook",
-      "webhookId": "e4ec00c3-9761-40de-92d2-8083d3c11218",
-      "disabled": true
-    },
-    {
-      "parameters": {
-        "content": "# TERMA_MAX RAG Agent with Dynamic Hybrid Search & Context Expansion",
-        "height": 648,
-        "width": 1052,
-        "color": 7
-      },
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [
-        -3760,
-        -272
-      ],
-      "id": "d2ded396-d36b-4280-a4d3-439596eb714a",
-      "name": "Sticky Note7"
-    },
-    {
-      "parameters": {
-        "promptType": "define",
-        "text": "={{ $json.chatInput }}",
-        "options": {
-          "systemMessage": "=# Role\n\nYou are an AI assistant responding to a user's query based on the information avaialble in the knowledgebase.\n\n# Goal\n\nYou are tasked with creating and executing a retrieval strategy to best answer the users question.\n\nThe output should be a well-reserached response to the users query based on the output from these tools and to follow the Operating Procedures and Response Rules as set about below.\n\nYou must consider both the conversation history and the current query.\n\nYour goal is to provide a fully grounded, accurate answer based on the output from these tools ONLY.\n\n# Standard Operating Procedure\n\n1. Based on your retrieval strategy, pass relevant query(s) to the dynamic hybrid search to narrow the search and retrieve candidate chunks\n2. Based on the most relevant chunk(s); Trigger the Fetch Document Hierarchy Tool to load the source Documents Structure\n3. Based on this document structure (which includes chunk ranges) along with any relevant child_ranges and parent_ranges from the retrieved chunks, trigger the Context Expansion tool to expand your insight into the document.\n\nOnce you've collected enough information, then answer the question, based on the info in context.\n\n# Response Rules\n\n- Ideal target format and length: Multiple Paragraphs\n- Use markdown formatting with appropriate section headings\n- Please respond in the same language as the user's question.\n- If there are images provided from the retrieved information, you should return this in markdown format.\n- Ensure the response maintains continuity with the conversation history.\n- List between 1-5 important reference sources at the end under \"References\" section. Provide Document Names and Page Numbers that these sources appear in the documents - this is in the chunk metadata.\n- Do not make anything up. \n- Do not include information not provided by the Knowledge Bases.\n- If you cannot answer the question using the provided information or if no information is returned from the tools, say \"Sorry I don't know\".",
-          "returnIntermediateSteps": true
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chat Widget</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-      },
-      "type": "@n8n/n8n-nodes-langchain.agent",
-      "typeVersion": 1.9,
-      "position": [
-        -3424,
-        -112
-      ],
-      "id": "0137ee1c-b3e6-4a4e-9c55-b7950f08dc38",
-      "name": "Agentic RAG ",
-      "retryOnFail": true,
-      "maxTries": 5
-    },
-    {
-      "parameters": {
-        "toolDescription": "Based on the most promising chunks retrieved from the knowledgebase, use this tool to expand out the context by fetching neighbouring chunks, parent chunks etc\n\nThe body of this call must be in this format and the values you need are in the chunk metadata. You can retrieve chunks from one or multiple documents if you like\n[\n    {\n      doc_id: \"doc-id-12345-abcde\",\n      chunk_ranges: [[0, 5]]\n    },\n    {\n      doc_id: \"another-doc-id-12345\",\n      chunk_ranges: [[10, 15], [20, 25]]\n    }\n  ]\n",
-        "method": "POST",
-        "url": "https://rdjstyoupdxuxolokmud.supabase.co/functions/v1/context-expansion",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "supabaseApi",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('JSON', ``, 'json') }}",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.httpRequestTool",
-      "typeVersion": 4.2,
-      "position": [
-        -2880,
-        144
-      ],
-      "id": "1ed6bcff-1082-49f9-81e1-485333136b70",
-      "name": "Context Expansion3",
-      "credentials": {
-        "supabaseApi": {
-          "id": "0WmOjOVuJaFnodjp",
-          "name": "SOTA TermaMax"
+
+        /* Chat Widget Container */
+        .chat-widget {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            z-index: 9999;
         }
-      }
-    },
-    {
-      "parameters": {
-        "operation": "getAll",
-        "tableId": "record_manager_v2",
-        "limit": 1,
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "doc_id",
-              "condition": "eq",
-              "keyValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('conditions0_Field_Value', ``, 'string') }}"
+
+        /* Chat Button */
+        .chat-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            z-index: 9999;
+        }
+
+        .chat-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+        }
+
+        .chat-button svg {
+            width: 28px;
+            height: 28px;
+            fill: white;
+        }
+
+        /* Chat Window */
+        .chat-window {
+            display: none;
+            flex-direction: column;
+            width: 380px;
+            height: 600px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+            overflow: hidden;
+            transition: all 0.3s ease;
+            position: fixed;
+            min-width: 320px;
+            min-height: 400px;
+            max-width: 800px;
+            max-height: 90vh;
+            z-index: 9998;
+        }
+
+        .chat-window.open {
+            display: flex;
+        }
+
+        .chat-window.fullscreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            width: 100vw !important;
+            height: 100vh !important;
+            border-radius: 0;
+            z-index: 10000;
+            max-width: none;
+            max-height: none;
+        }
+
+        /* Resize Handles */
+        .resize-handle {
+            position: absolute;
+            z-index: 10;
+        }
+
+        .resize-handle-left {
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 8px;
+            cursor: ew-resize;
+        }
+
+        .resize-handle-right {
+            right: 0;
+            top: 0;
+            bottom: 0;
+            width: 8px;
+            cursor: ew-resize;
+        }
+
+        .resize-handle-top {
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 8px;
+            cursor: ns-resize;
+        }
+
+        .resize-handle-bottom {
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 8px;
+            cursor: ns-resize;
+        }
+
+        .resize-handle-corner-tl {
+            left: 0;
+            top: 0;
+            width: 16px;
+            height: 16px;
+            cursor: nwse-resize;
+        }
+
+        .resize-handle-corner-tr {
+            right: 0;
+            top: 0;
+            width: 16px;
+            height: 16px;
+            cursor: nesw-resize;
+        }
+
+        .resize-handle-corner-bl {
+            left: 0;
+            bottom: 0;
+            width: 16px;
+            height: 16px;
+            cursor: nesw-resize;
+        }
+
+        .resize-handle-corner-br {
+            right: 0;
+            bottom: 0;
+            width: 16px;
+            height: 16px;
+            cursor: nwse-resize;
+        }
+
+        .resize-handle-corner-br::after {
+            content: '';
+            position: absolute;
+            right: 2px;
+            bottom: 2px;
+            width: 12px;
+            height: 12px;
+            background: linear-gradient(
+                135deg,
+                transparent 0%,
+                transparent 45%,
+                rgba(0, 0, 0, 0.1) 45%,
+                rgba(0, 0, 0, 0.1) 47%,
+                transparent 47%,
+                transparent 52%,
+                rgba(0, 0, 0, 0.1) 52%,
+                rgba(0, 0, 0, 0.1) 54%,
+                transparent 54%
+            );
+            border-radius: 0 0 16px 0;
+        }
+
+        /* Hide resize handles in fullscreen */
+        .chat-window.fullscreen .resize-handle {
+            display: none;
+        }
+
+        /* Chat Header */
+        .chat-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: grab;
+            user-select: none;
+        }
+
+        .chat-header-content {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .chat-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .chat-header-text h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .chat-header-text p {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        .chat-header-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .chat-header-button {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s ease;
+        }
+
+        .chat-header-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .chat-header-button svg {
+            width: 18px;
+            height: 18px;
+            fill: white;
+        }
+
+        /* Chat Messages */
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f7f9fc;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .chat-messages::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: #cbd5e0;
+            border-radius: 3px;
+        }
+
+        .chat-message {
+            display: flex;
+            gap: 8px;
+            animation: messageSlide 0.3s ease;
+        }
+
+        @keyframes messageSlide {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
             }
-          ]
-        }
-      },
-      "type": "n8n-nodes-base.supabaseTool",
-      "typeVersion": 1,
-      "position": [
-        -3056,
-        144
-      ],
-      "id": "6f9ba4ba-dd2f-40a1-846c-1f7ecb7ab56a",
-      "name": "Fetch Document Hierarchy3",
-      "credentials": {
-        "supabaseApi": {
-          "id": "0WmOjOVuJaFnodjp",
-          "name": "SOTA TermaMax"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "model": {
-          "__rl": true,
-          "value": "claude-sonnet-4-5-20250929",
-          "mode": "list",
-          "cachedResultName": "Claude Sonnet 4.5"
-        },
-        "options": {}
-      },
-      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
-      "typeVersion": 1.3,
-      "position": [
-        -3552,
-        144
-      ],
-      "id": "0167d90d-5682-49c6-a7f1-944d0f03cc71",
-      "name": "Anthropic Chat Model3",
-      "credentials": {
-        "anthropicApi": {
-          "id": "fEByR0QRaehEiLgV",
-          "name": "Anthropic account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "sessionIdType": "customKey",
-        "sessionKey": "={{ $json.sessionId }}",
-        "contextWindowLength": 10
-      },
-      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
-      "typeVersion": 1.3,
-      "position": [
-        -3376,
-        144
-      ],
-      "id": "d319ebc5-f96b-4fb2-ac49-c50d7a137044",
-      "name": "Supabase Short-Term Memory4",
-      "credentials": {
-        "postgres": {
-          "id": "b5Hw5SjOWFiV7b3g",
-          "name": "SOTA TermaMax"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "options": {}
-      },
-      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
-      "typeVersion": 1.3,
-      "position": [
-        -4176,
-        48
-      ],
-      "id": "c5a9b78a-f015-4f10-970e-95b47e862928",
-      "name": "When chat message received",
-      "webhookId": "f77e070b-6e97-41c0-a8d3-0f031d80b098"
-    },
-    {
-      "parameters": {
-        "description": "=Call this tool to query data from our knowledgebase using hybrid search (vector, lexical, ilike and fuzzy)\n\nYou can set different weights of this hybrid search depending on the type of query.\n\ndense_weight float DEFAULT 0.5,\nsparse_weight float DEFAULT 0.5,\nilike_weight float DEFAULT 0\nfuzzy_weight float DEFAULT 0\nfuzzy_threshold float DEFAULT 0.8\n\nFor semantic natural lanauge queries you can prioritise dense embeddings, \nFor technical terms and more traditional search you can priorize sparse lexical search\nFor exact matches for codes and IDs you can prioritze ilike wildcard matching\nFor typos that aren't picked up by semantic search, you can prioritize fuzzy matching\n\nIf looking for matches via ilike or fuzzy matches, the query should be extremely focused and short, as otherwise it will likely return zero results. (e.g. exact ID or code)\n\nAs pattern matching and fuzzy matching can add latency, I recommend defaulting this to zero unless you want to actually use it.\n\nTotal of the 4 weights much equal 1\n\nFuzzy Threshold adds significant latency should should be as high as possible - Default to 0.8",
-        "workflowId": {
-          "__rl": true,
-          "value": "sIYqut34phjCHDmh",
-          "mode": "list",
-          "cachedResultUrl": "/workflow/sIYqut34phjCHDmh",
-          "cachedResultName": "SOTA TermaMax Hybrid Search"
-        },
-        "workflowInputs": {
-          "mappingMode": "defineBelow",
-          "value": {
-            "query": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('query', ``, 'string') }}",
-            "session_id": "={{ $json.sessionId }}",
-            "type": "hybrid",
-            "dense_weight": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('dense_weight', ``, 'number') }}",
-            "sparse_weight": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('sparse_weight', ``, 'number') }}",
-            "ilike_weight": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('ilike_weight', ``, 'number') }}",
-            "fuzzy_weight": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fuzzy_weight', ``, 'number') }}",
-            "fuzzy_threshold": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fuzzy_threshold', ``, 'number') }}"
-          },
-          "matchingColumns": [],
-          "schema": [
-            {
-              "id": "query",
-              "displayName": "query",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string"
-            },
-            {
-              "id": "type",
-              "displayName": "type",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string"
-            },
-            {
-              "id": "session_id",
-              "displayName": "session_id",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string"
-            },
-            {
-              "id": "dense_weight",
-              "displayName": "dense_weight",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "number"
-            },
-            {
-              "id": "sparse_weight",
-              "displayName": "sparse_weight",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "number"
-            },
-            {
-              "id": "ilike_weight",
-              "displayName": "ilike_weight",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "number"
-            },
-            {
-              "id": "fuzzy_weight",
-              "displayName": "fuzzy_weight",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "number"
-            },
-            {
-              "id": "fuzzy_threshold",
-              "displayName": "fuzzy_threshold",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "number"
+            to {
+                opacity: 1;
+                transform: translateY(0);
             }
-          ],
-          "attemptToConvertTypes": false,
-          "convertFieldsToString": false
         }
-      },
-      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
-      "typeVersion": 2.2,
-      "position": [
-        -3232,
-        144
-      ],
-      "id": "e5484382-6c4a-46e4-be88-488f55bb0db8",
-      "name": "Dynamic Hybrid Search5"
-    }
-  ],
-  "connections": {
-    "Context Expansion3": {
-      "ai_tool": [
-        [
-          {
-            "node": "Agentic RAG ",
-            "type": "ai_tool",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Fetch Document Hierarchy3": {
-      "ai_tool": [
-        [
-          {
-            "node": "Agentic RAG ",
-            "type": "ai_tool",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Anthropic Chat Model3": {
-      "ai_languageModel": [
-        [
-          {
-            "node": "Agentic RAG ",
-            "type": "ai_languageModel",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Supabase Short-Term Memory4": {
-      "ai_memory": [
-        [
-          {
-            "node": "Agentic RAG ",
-            "type": "ai_memory",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "When chat message received": {
-      "main": [
-        [
-          {
-            "node": "Agentic RAG ",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Dynamic Hybrid Search5": {
-      "ai_tool": [
-        [
-          {
-            "node": "Agentic RAG ",
-            "type": "ai_tool",
-            "index": 0
-          }
-        ]
-      ]
-    }
-  },
-  "pinData": {},
-  "meta": {
-    "templateCredsSetupCompleted": true,
-    "instanceId": "ec64976a0c46f3969fd3c5b8b20605022a6eddbb7cbfbdcc2300ac0ab6d067a0"
-  }
-}
+
+        .chat-message.user {
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .message-avatar.bot {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .message-avatar.user {
+            background: #e2e8f0;
+            color: #4a5568;
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 16px;
+            word-wrap: break-word;
+        }
+
+        .message-content.bot {
+            background: white;
+            color: #2d3748;
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .message-content.user {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message-time {
+            font-size: 11px;
+            opacity: 0.6;
+            margin-top: 4px;
+        }
+
+        /* Typing Indicator */
+        .typing-indicator {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 16px;
+            background: white;
+            border-radius: 16px;
+            width: fit-content;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .typing-indicator.active {
+            display: flex;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #cbd5e0;
+            animation: typingBounce 1.4s infinite;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typingBounce {
+            0%, 60%, 100% {
+                transform: translateY(0);
+            }
+            30% {
+                transform: translateY(-10px);
+            }
+        }
+
+        /* Chat Input */
+        .chat-input-container {
+            padding: 16px 20px;
+            background: white;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .chat-input-wrapper {
+            display: flex;
+            gap: 8px;
+            align-items: flex-end;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 24px;
+            font-family: inherit;
+            font-size: 14px;
+            resize: none;
+            outline: none;
+            max-height: 120px;
+            min-height: 44px;
+            transition: border-color 0.2s ease;
+        }
+
+        .chat-input:focus {
+            border-color: #667eea;
+        }
+
+        .chat-send-button {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s ease, opacity 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .chat-send-button:hover:not(:disabled) {
+            transform: scale(1.05);
+        }
+
+        .chat-send-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .chat-send-button svg {
+            width: 20px;
+            height: 20px;
+            fill: white;
+        }
+
+        /* Welcome Message */
+        .welcome-message {
+            text-align: center;
+            padding: 40px 20px;
+            color: #718096;
+        }
+
+        .welcome-message h4 {
+            color: #2d3748;
+            margin-bottom: 8px;
+            font-size: 18px;
+        }
+
+        .welcome-message p {
+            font-size: 14px;
+        }
+
+        /* Error Message */
+        .error-message {
+            background: #fed7d7;
+            color: #c53030;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            margin: 8px 20px;
+            animation: messageSlide 0.3s ease;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 480px) {
+            .chat-window {
+                width: calc(100vw - 40px);
+                height: calc(100vh - 40px);
+            }
+
+            .chat-window.fullscreen {
+                width: 100vw;
+                height: 100vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-widget">
+        <!-- Chat Button -->
+        <button class="chat-button" id="chatButton" aria-label="Open chat">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
+            </svg>
+        </button>
+
+        <!-- Chat Window -->
+        <div class="chat-window" id="chatWindow">
+            <!-- Header -->
+            <div class="chat-header" id="chatHeader">
+                <div class="chat-header-content">
+                    <div class="chat-avatar">🤖</div>
+                    <div class="chat-header-text">
+                        <h3>Asystent AI</h3>
+                        <p>Online</p>
+                    </div>
+                </div>
+                <div class="chat-header-actions">
+                    <button class="chat-header-button" id="fullscreenButton" aria-label="Fullscreen">
+                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
+                        </svg>
+                    </button>
+                    <button class="chat-header-button" id="closeButton" aria-label="Close">
+                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Messages -->
+            <div class="chat-messages" id="chatMessages">
+                <div class="welcome-message">
+                    <h4>Witaj! 👋</h4>
+                    <p>Jestem Twoim asystentem AI. Jak mogę Ci dzisiaj pomóc?</p>
+                </div>
+            </div>
+
+            <!-- Input -->
+            <div class="chat-input-container">
+                <div class="chat-input-wrapper">
+                    <textarea
+                        class="chat-input"
+                        id="chatInput"
+                        placeholder="Wpisz wiadomość..."
+                        rows="1"
+                    ></textarea>
+                    <button class="chat-send-button" id="sendButton" aria-label="Send message">
+                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Resize Handles -->
+            <div class="resize-handle resize-handle-left" id="resizeLeft"></div>
+            <div class="resize-handle resize-handle-right" id="resizeRight"></div>
+            <div class="resize-handle resize-handle-top" id="resizeTop"></div>
+            <div class="resize-handle resize-handle-bottom" id="resizeBottom"></div>
+            <div class="resize-handle resize-handle-corner-tl" id="resizeCornerTL"></div>
+            <div class="resize-handle resize-handle-corner-tr" id="resizeCornerTR"></div>
+            <div class="resize-handle resize-handle-corner-bl" id="resizeCornerBL"></div>
+            <div class="resize-handle resize-handle-corner-br" id="resizeCornerBR"></div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const CONFIG = {
+            // Replace with your n8n webhook URL
+            webhookUrl: 'YOUR_N8N_WEBHOOK_URL_HERE',
+            // Optional: API Key for authentication
+            apiKey: '', // Add your API key here if using authentication
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            // Security settings
+            maxMessageLength: 1000,
+            rateLimit: {
+                maxMessages: 10,        // Max messages per time window
+                timeWindow: 60000,      // Time window in ms (60 seconds)
+                cooldown: 2000          // Cooldown between messages in ms
+            }
+        };
+
+        // DOM Elements
+        const chatButton = document.getElementById('chatButton');
+        const chatWindow = document.getElementById('chatWindow');
+        const chatHeader = document.getElementById('chatHeader');
+        const closeButton = document.getElementById('closeButton');
+        const fullscreenButton = document.getElementById('fullscreenButton');
+        const chatMessages = document.getElementById('chatMessages');
+        const chatInput = document.getElementById('chatInput');
+        const sendButton = document.getElementById('sendButton');
+        const resizeLeft = document.getElementById('resizeLeft');
+        const resizeRight = document.getElementById('resizeRight');
+        const resizeTop = document.getElementById('resizeTop');
+        const resizeBottom = document.getElementById('resizeBottom');
+        const resizeCornerTL = document.getElementById('resizeCornerTL');
+        const resizeCornerTR = document.getElementById('resizeCornerTR');
+        const resizeCornerBL = document.getElementById('resizeCornerBL');
+        const resizeCornerBR = document.getElementById('resizeCornerBR');
+
+        // State
+        let isFullscreen = false;
+        let isResizing = false;
+        let resizeType = null;
+        let isDragging = false;
+        let startX = 0;
+        let startY = 0;
+        let startWidth = 0;
+        let startHeight = 0;
+        let startLeft = 0;
+        let startTop = 0;
+
+        // Save position/size before fullscreen
+        let beforeFullscreenWidth = '';
+        let beforeFullscreenHeight = '';
+        let beforeFullscreenLeft = '';
+        let beforeFullscreenTop = '';
+
+        // Rate limiting state
+        let messageTimestamps = [];
+        let lastMessageTime = 0;
+
+        // Resize constraints
+        const MIN_WIDTH = 320;
+        const MIN_HEIGHT = 400;
+        const MAX_WIDTH = window.innerWidth;
+        const MAX_HEIGHT = window.innerHeight;
+
+        // Initialize chat window position
+        function initializeChatPosition() {
+            if (!chatWindow.style.left && !chatWindow.style.right) {
+                // Position in bottom-right by default
+                const rect = chatWindow.getBoundingClientRect();
+                chatWindow.style.left = (window.innerWidth - rect.width - 20) + 'px';
+                chatWindow.style.top = (window.innerHeight - rect.height - 20) + 'px';
+                chatWindow.style.right = 'auto';
+                chatWindow.style.bottom = 'auto';
+            }
+        }
+
+        // Event Listeners
+        chatButton.addEventListener('click', openChat);
+        closeButton.addEventListener('click', closeChat);
+        fullscreenButton.addEventListener('click', toggleFullscreen);
+        sendButton.addEventListener('click', sendMessage);
+        chatInput.addEventListener('keydown', handleKeyDown);
+        chatInput.addEventListener('input', autoResizeTextarea);
+
+        // Resize event listeners
+        resizeLeft.addEventListener('mousedown', (e) => startResize(e, 'left'));
+        resizeRight.addEventListener('mousedown', (e) => startResize(e, 'right'));
+        resizeTop.addEventListener('mousedown', (e) => startResize(e, 'top'));
+        resizeBottom.addEventListener('mousedown', (e) => startResize(e, 'bottom'));
+        resizeCornerTL.addEventListener('mousedown', (e) => startResize(e, 'top-left'));
+        resizeCornerTR.addEventListener('mousedown', (e) => startResize(e, 'top-right'));
+        resizeCornerBL.addEventListener('mousedown', (e) => startResize(e, 'bottom-left'));
+        resizeCornerBR.addEventListener('mousedown', (e) => startResize(e, 'bottom-right'));
+        document.addEventListener('mousemove', doResize);
+        document.addEventListener('mouseup', stopResize);
+
+        // Drag to move event listeners
+        chatHeader.addEventListener('mousedown', startDrag);
+        document.addEventListener('mousemove', doDrag);
+        document.addEventListener('mouseup', stopDrag);
+
+        // Open Chat
+        function openChat() {
+            chatWindow.classList.add('open');
+            chatButton.style.display = 'none';
+            initializeChatPosition(); // Set initial position
+            chatInput.focus();
+        }
+
+        // Close Chat
+        function closeChat() {
+            chatWindow.classList.remove('open');
+            chatButton.style.display = 'flex';
+            if (isFullscreen) {
+                toggleFullscreen();
+            }
+        }
+
+        // Toggle Fullscreen
+        function toggleFullscreen() {
+            isFullscreen = !isFullscreen;
+            chatWindow.classList.toggle('fullscreen');
+
+            if (isFullscreen) {
+                // Save current position and size before entering fullscreen
+                beforeFullscreenWidth = chatWindow.style.width;
+                beforeFullscreenHeight = chatWindow.style.height;
+                beforeFullscreenLeft = chatWindow.style.left;
+                beforeFullscreenTop = chatWindow.style.top;
+
+                // Remove inline styles to allow CSS fullscreen to work
+                chatWindow.style.width = '';
+                chatWindow.style.height = '';
+                chatWindow.style.left = '';
+                chatWindow.style.top = '';
+            } else {
+                // Restore previous position and size when exiting fullscreen
+                chatWindow.style.width = beforeFullscreenWidth;
+                chatWindow.style.height = beforeFullscreenHeight;
+                chatWindow.style.left = beforeFullscreenLeft;
+                chatWindow.style.top = beforeFullscreenTop;
+            }
+
+            // Update fullscreen icon
+            const icon = isFullscreen
+                ? '<path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/>'
+                : '<path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>';
+
+            fullscreenButton.querySelector('svg').innerHTML = icon;
+        }
+
+        // Resize Functions
+        function startResize(e, type) {
+            if (isFullscreen) return; // Disable resize in fullscreen
+
+            e.preventDefault();
+            e.stopPropagation();
+
+            isResizing = true;
+            resizeType = type;
+            startX = e.clientX;
+            startY = e.clientY;
+            startWidth = chatWindow.offsetWidth;
+            startHeight = chatWindow.offsetHeight;
+            startLeft = parseInt(chatWindow.style.left) || chatWindow.offsetLeft;
+            startTop = parseInt(chatWindow.style.top) || chatWindow.offsetTop;
+
+            // Disable transition during resize
+            chatWindow.style.transition = 'none';
+
+            // Add user-select: none to prevent text selection during resize
+            document.body.style.userSelect = 'none';
+        }
+
+        function doResize(e) {
+            if (!isResizing) return;
+
+            e.preventDefault();
+
+            const deltaX = e.clientX - startX;
+            const deltaY = e.clientY - startY;
+
+            let newWidth = startWidth;
+            let newHeight = startHeight;
+            let newLeft = startLeft;
+            let newTop = startTop;
+
+            // Calculate new dimensions based on resize type
+            switch(resizeType) {
+                case 'left':
+                    newWidth = startWidth - deltaX;
+                    newLeft = startLeft + deltaX;
+                    break;
+
+                case 'right':
+                    newWidth = startWidth + deltaX;
+                    break;
+
+                case 'top':
+                    newHeight = startHeight - deltaY;
+                    newTop = startTop + deltaY;
+                    break;
+
+                case 'bottom':
+                    newHeight = startHeight + deltaY;
+                    break;
+
+                case 'top-left':
+                    newWidth = startWidth - deltaX;
+                    newHeight = startHeight - deltaY;
+                    newLeft = startLeft + deltaX;
+                    newTop = startTop + deltaY;
+                    break;
+
+                case 'top-right':
+                    newWidth = startWidth + deltaX;
+                    newHeight = startHeight - deltaY;
+                    newTop = startTop + deltaY;
+                    break;
+
+                case 'bottom-left':
+                    newWidth = startWidth - deltaX;
+                    newHeight = startHeight + deltaY;
+                    newLeft = startLeft + deltaX;
+                    break;
+
+                case 'bottom-right':
+                    newWidth = startWidth + deltaX;
+                    newHeight = startHeight + deltaY;
+                    break;
+            }
+
+            // Apply constraints
+            newWidth = Math.max(MIN_WIDTH, newWidth);
+            newHeight = Math.max(MIN_HEIGHT, newHeight);
+
+            // Apply new dimensions and position
+            chatWindow.style.width = newWidth + 'px';
+            chatWindow.style.height = newHeight + 'px';
+            chatWindow.style.left = newLeft + 'px';
+            chatWindow.style.top = newTop + 'px';
+        }
+
+        function stopResize() {
+            if (!isResizing) return;
+
+            isResizing = false;
+            resizeType = null;
+
+            // Re-enable transition
+            chatWindow.style.transition = '';
+
+            // Re-enable text selection
+            document.body.style.userSelect = '';
+        }
+
+        // Drag to Move Functions
+        function startDrag(e) {
+            if (isFullscreen) return; // Disable drag in fullscreen
+            if (e.target.closest('button')) return; // Don't drag when clicking buttons
+
+            isDragging = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            startLeft = parseInt(chatWindow.style.left) || chatWindow.offsetLeft;
+            startTop = parseInt(chatWindow.style.top) || chatWindow.offsetTop;
+
+            // Disable transition during drag
+            chatWindow.style.transition = 'none';
+
+            // Add user-select: none to prevent text selection during drag
+            document.body.style.userSelect = 'none';
+
+            // Change cursor
+            chatHeader.style.cursor = 'grabbing';
+        }
+
+        function doDrag(e) {
+            if (!isDragging) return;
+
+            e.preventDefault();
+
+            const deltaX = e.clientX - startX;
+            const deltaY = e.clientY - startY;
+
+            const newLeft = startLeft + deltaX;
+            const newTop = startTop + deltaY;
+
+            chatWindow.style.left = newLeft + 'px';
+            chatWindow.style.top = newTop + 'px';
+        }
+
+        function stopDrag() {
+            if (!isDragging) return;
+
+            isDragging = false;
+
+            // Re-enable transition
+            chatWindow.style.transition = '';
+
+            // Re-enable text selection
+            document.body.style.userSelect = '';
+
+            // Reset cursor
+            chatHeader.style.cursor = 'grab';
+        }
+
+        // Handle Enter Key
+        function handleKeyDown(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        }
+
+        // Auto-resize Textarea
+        function autoResizeTextarea() {
+            chatInput.style.height = 'auto';
+            chatInput.style.height = Math.min(chatInput.scrollHeight, 120) + 'px';
+        }
+
+        // SECURITY: HTML Sanitization
+        function escapeHtml(unsafe) {
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // SECURITY: Rate Limiting
+        function checkRateLimit() {
+            const now = Date.now();
+
+            // Check cooldown between messages
+            if (now - lastMessageTime < CONFIG.rateLimit.cooldown) {
+                const waitTime = Math.ceil((CONFIG.rateLimit.cooldown - (now - lastMessageTime)) / 1000);
+                showError(`Poczekaj ${waitTime} sekund przed wysłaniem kolejnej wiadomości.`);
+                return false;
+            }
+
+            // Remove old timestamps outside time window
+            messageTimestamps = messageTimestamps.filter(
+                time => now - time < CONFIG.rateLimit.timeWindow
+            );
+
+            // Check message limit
+            if (messageTimestamps.length >= CONFIG.rateLimit.maxMessages) {
+                showError('Przekroczono limit wiadomości. Spróbuj za minutę.');
+                return false;
+            }
+
+            messageTimestamps.push(now);
+            lastMessageTime = now;
+            return true;
+        }
+
+        // SECURITY: Input Validation
+        function validateMessage(message) {
+            if (!message || message.trim().length === 0) {
+                return { valid: false, error: 'Wiadomość nie może być pusta.' };
+            }
+
+            if (message.length > CONFIG.maxMessageLength) {
+                return {
+                    valid: false,
+                    error: `Wiadomość za długa (max ${CONFIG.maxMessageLength} znaków).`
+                };
+            }
+
+            // Check for suspicious patterns (optional)
+            const suspiciousPatterns = [
+                /<script/i,
+                /javascript:/i,
+                /on\w+=/i,  // event handlers like onclick=
+                /<iframe/i
+            ];
+
+            for (const pattern of suspiciousPatterns) {
+                if (pattern.test(message)) {
+                    return {
+                        valid: false,
+                        error: 'Wiadomość zawiera niedozwolone treści.'
+                    };
+                }
+            }
+
+            return { valid: true };
+        }
+
+        // Extract message from n8n response (supports multiple formats)
+        function extractBotMessage(data) {
+            // If data is an array, get the first element
+            if (Array.isArray(data) && data.length > 0) {
+                data = data[0];
+            }
+
+            // Try different field names that n8n might return
+            return data.response ||
+                   data.message ||
+                   data.output ||
+                   data.text ||
+                   data.reply ||
+                   (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || // OpenAI format
+                   'Przepraszam, nie otrzymałem odpowiedzi.';
+        }
+
+        // Send Message
+        async function sendMessage() {
+            const message = chatInput.value.trim();
+
+            if (!message) return;
+
+            // SECURITY: Validate message
+            const validation = validateMessage(message);
+            if (!validation.valid) {
+                showError(validation.error);
+                return;
+            }
+
+            // SECURITY: Check rate limit
+            if (!checkRateLimit()) {
+                return;
+            }
+
+            // Check if webhook URL is configured
+            if (CONFIG.webhookUrl === 'YOUR_N8N_WEBHOOK_URL_HERE') {
+                showError('Webhook URL nie został skonfigurowany. Ustaw CONFIG.webhookUrl w kodzie.');
+                return;
+            }
+
+            // Disable input while sending
+            chatInput.disabled = true;
+            sendButton.disabled = true;
+
+            // Add user message
+            addMessage(message, 'user');
+
+            // Clear input
+            chatInput.value = '';
+            chatInput.style.height = 'auto';
+
+            // Show typing indicator
+            const typingIndicator = showTypingIndicator();
+
+            try {
+                // Send to n8n webhook
+                const response = await fetch(CONFIG.webhookUrl, {
+                    method: 'POST',
+                    headers: CONFIG.headers,
+                    body: JSON.stringify({
+                        message: message,
+                        timestamp: new Date().toISOString(),
+                        sessionId: getSessionId()
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                // Remove typing indicator
+                typingIndicator.remove();
+
+                // Add bot response (supports multiple n8n response formats)
+                const botMessage = extractBotMessage(data);
+                addMessage(botMessage, 'bot');
+
+            } catch (error) {
+                console.error('Error sending message:', error);
+                typingIndicator.remove();
+                showError('Wystąpił błąd podczas wysyłania wiadomości. Spróbuj ponownie.');
+            } finally {
+                // Re-enable input
+                chatInput.disabled = false;
+                sendButton.disabled = false;
+                chatInput.focus();
+            }
+        }
+
+        // Add Message to Chat
+        function addMessage(text, sender) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `chat-message ${sender}`;
+
+            const avatar = document.createElement('div');
+            avatar.className = `message-avatar ${sender}`;
+            avatar.textContent = sender === 'bot' ? '🤖' : '👤';
+
+            const content = document.createElement('div');
+            content.className = `message-content ${sender}`;
+
+            // Simple text formatting
+            content.innerHTML = formatMessage(text);
+
+            const time = document.createElement('div');
+            time.className = 'message-time';
+            time.textContent = getCurrentTime();
+            content.appendChild(time);
+
+            messageDiv.appendChild(avatar);
+            messageDiv.appendChild(content);
+
+            // Remove welcome message if present
+            const welcomeMessage = chatMessages.querySelector('.welcome-message');
+            if (welcomeMessage) {
+                welcomeMessage.remove();
+            }
+
+            chatMessages.appendChild(messageDiv);
+            scrollToBottom();
+        }
+
+        // SECURITY: Format Message with HTML sanitization
+        function formatMessage(text) {
+            // First, escape all HTML to prevent XSS
+            let safe = escapeHtml(text);
+
+            // Then apply simple markdown-like formatting
+            // Note: We need to use &lt;/&gt; because text is already escaped
+            safe = safe
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/\n/g, '<br>');
+
+            return safe;
+        }
+
+        // Show Typing Indicator
+        function showTypingIndicator() {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'chat-message bot';
+
+            const avatar = document.createElement('div');
+            avatar.className = 'message-avatar bot';
+            avatar.textContent = '🤖';
+
+            const indicator = document.createElement('div');
+            indicator.className = 'typing-indicator active';
+            indicator.innerHTML = `
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+            `;
+
+            messageDiv.appendChild(avatar);
+            messageDiv.appendChild(indicator);
+            chatMessages.appendChild(messageDiv);
+            scrollToBottom();
+
+            return messageDiv;
+        }
+
+        // Show Error Message
+        function showError(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.textContent = message;
+
+            chatMessages.appendChild(errorDiv);
+            scrollToBottom();
+
+            // Remove error after 5 seconds
+            setTimeout(() => {
+                errorDiv.remove();
+            }, 5000);
+        }
+
+        // Scroll to Bottom
+        function scrollToBottom() {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Get Current Time
+        function getCurrentTime() {
+            const now = new Date();
+            return now.toLocaleTimeString('pl-PL', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        // SECURITY: Get or Create Session ID with crypto.randomUUID()
+        function getSessionId() {
+            let sessionId = sessionStorage.getItem('chatSessionId');
+            if (!sessionId) {
+                // Use crypto.randomUUID() for better security (modern browsers)
+                if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+                    sessionId = crypto.randomUUID();
+                } else {
+                    // Fallback for older browsers
+                    sessionId = 'session_' + Date.now() + '_' +
+                                Math.random().toString(36).substring(2) +
+                                Math.random().toString(36).substring(2);
+                }
+                sessionStorage.setItem('chatSessionId', sessionId);
+            }
+            return sessionId;
+        }
+
+        // Initialize
+        console.log('AI Chat Widget (Secure Version) initialized');
+        console.log('Session ID:', getSessionId());
+        console.log('Security features enabled: Rate limiting, Input validation, XSS protection');
+    </script>
+</body>
+</html>
