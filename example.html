@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Przykład użycia AI Chat Widget</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            max-width: 800px;
+            padding: 40px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+        }
+
+        h1 {
+            color: #2d3748;
+            margin-bottom: 16px;
+        }
+
+        p {
+            color: #4a5568;
+            line-height: 1.6;
+            margin-bottom: 12px;
+        }
+
+        .highlight {
+            background: #f7fafc;
+            padding: 16px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            margin: 20px 0;
+        }
+
+        .highlight strong {
+            color: #667eea;
+        }
+
+        code {
+            background: #2d3748;
+            color: #f7fafc;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 14px;
+        }
+
+        .button {
+            display: inline-block;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            margin-top: 20px;
+            transition: transform 0.2s ease;
+        }
+
+        .button:hover {
+            transform: translateY(-2px);
+        }
+
+        .note {
+            background: #fef5e7;
+            border-left: 4px solid #f39c12;
+            padding: 16px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .note strong {
+            color: #f39c12;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎉 Przykład AI Chat Widget</h1>
+
+        <p>
+            To jest przykładowa strona demonstrująca działanie AI Chat Widget.
+            Widget pojawi się jako przycisk w prawym dolnym rogu ekranu.
+        </p>
+
+        <div class="highlight">
+            <strong>Jak używać:</strong>
+            <ol>
+                <li>Kliknij przycisk czatu w prawym dolnym rogu</li>
+                <li>Wpisz wiadomość w polu tekstowym</li>
+                <li>Naciśnij Enter lub kliknij przycisk wysyłania</li>
+                <li>Poczekaj na odpowiedź od AI</li>
+            </ol>
+        </div>
+
+        <div class="note">
+            <strong>Uwaga:</strong> Aby widget działał poprawnie, musisz skonfigurować
+            <code>webhookUrl</code> w pliku <code>chat-widget.html</code> na URL
+            swojego webhooka n8n.
+        </div>
+
+        <p>
+            Widget obsługuje:
+        </p>
+        <ul>
+            <li>✅ Tryb pełnoekranowy (przycisk w nagłówku)</li>
+            <li>✅ Skróty klawiszowe (Enter wysyła, Shift+Enter nowa linia)</li>
+            <li>✅ Animowane wskaźniki pisania</li>
+            <li>✅ Responsywny design dla mobile i desktop</li>
+            <li>✅ Automatyczne zarządzanie sesjami</li>
+        </ul>
+
+        <a href="https://github.com/DariuszCiesielski/ai-chat-widget" class="button">
+            📚 Zobacz dokumentację
+        </a>
+    </div>
+
+    <!-- AI Chat Widget - Load via JavaScript -->
+    <script>
+        // Load chat widget from chat-widget.html
+        fetch('chat-widget.html')
+            .then(response => response.text())
+            .then(html => {
+                // Extract just the widget HTML (everything in body)
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+
+                // Get the style and script from the widget
+                const widgetStyle = doc.querySelector('style');
+                const widgetScript = doc.querySelector('script');
+                const widgetContent = doc.querySelector('.chat-widget');
+
+                if (widgetStyle) document.head.appendChild(widgetStyle);
+                if (widgetContent) document.body.appendChild(widgetContent);
+                if (widgetScript) {
+                    const newScript = document.createElement('script');
+                    newScript.textContent = widgetScript.textContent;
+                    document.body.appendChild(newScript);
+                }
+            })
+            .catch(error => {
+                console.error('Error loading chat widget:', error);
+            });
+    </script>
+
+</body>
+</html>
