@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chat Widget</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Chat Widget Container */
+        .chat-widget {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            z-index: 9999;
+        }
+
+        /* Chat Button */
+        .chat-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            z-index: 9999;
+        }
+
+        .chat-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+        }
+
+        .chat-button svg {
+            width: 28px;
+            height: 28px;
+            fill: white;
+        }
+
+        /* Chat Window */
+        .chat-window {
+            display: none;
+            flex-direction: column;
+            width: 380px;
+            height: 600px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+            overflow: hidden;
+            transition: all 0.3s ease;
+            position: fixed;
+            min-width: 320px;
+            min-height: 400px;
+            max-width: 800px;
+            max-height: 90vh;
+            z-index: 9998;
+        }
+
+        .chat-window.open {
+            display: flex;
+        }
+
+        .chat-window.fullscreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            width: 100vw !important;
+            height: 100vh !important;
+            border-radius: 0;
+            z-index: 10000;
+            max-width: none;
+            max-height: none;
+        }
+
+        /* Resize Handles */
+        .resize-handle {
+            position: absolute;
+            z-index: 10;
+        }
+
+        .resize-handle-left {
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 8px;
+            cursor: ew-resize;
+        }
+
+        .resize-handle-right {
+            right: 0;
+            top: 0;
+            bottom: 0;
+            width: 8px;
+            cursor: ew-resize;
+        }
+
+        .resize-handle-top {
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 8px;
+            cursor: ns-resize;
+        }
+
+        .resize-handle-bottom {
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 8px;
+            cursor: ns-resize;
+        }
+
+        .resize-handle-corner-tl {
+            left: 0;
+            top: 0;
+            width: 16px;
+            height: 16px;
+            cursor: nwse-resize;
+        }
+
+        .resize-handle-corner-tr {
+            right: 0;
+            top: 0;
+            width: 16px;
+            height: 16px;
+            cursor: nesw-resize;
+        }
+
+        .resize-handle-corner-bl {
+            left: 0;
+            bottom: 0;
+            width: 16px;
+            height: 16px;
+            cursor: nesw-resize;
+        }
+
+        .resize-handle-corner-br {
+            right: 0;
+            bottom: 0;
+            width: 16px;
+            height: 16px;
+            cursor: nwse-resize;
+        }
+
+        .resize-handle-corner-br::after {
+            content: '';
+            position: absolute;
+            right: 2px;
+            bottom: 2px;
+            width: 12px;
+            height: 12px;
+            background: linear-gradient(
+                135deg,
+                transparent 0%,
+                transparent 45%,
+                rgba(0, 0, 0, 0.1) 45%,
+                rgba(0, 0, 0, 0.1) 47%,
+                transparent 47%,
+                transparent 52%,
+                rgba(0, 0, 0, 0.1) 52%,
+                rgba(0, 0, 0, 0.1) 54%,
+                transparent 54%
+            );
+            border-radius: 0 0 16px 0;
+        }
+
+        /* Hide resize handles in fullscreen */
+        .chat-window.fullscreen .resize-handle {
+            display: none;
+        }
+
+        /* Chat Header */
+        .chat-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: grab;
+            user-select: none;
+        }
+
+        .chat-header-content {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .chat-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .chat-header-text h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .chat-header-text p {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        .chat-header-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .chat-header-button {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s ease;
+        }
+
+        .chat-header-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .chat-header-button svg {
+            width: 18px;
+            height: 18px;
+            fill: white;
+        }
+
+        /* Chat Messages */
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f7f9fc;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .chat-messages::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: #cbd5e0;
+            border-radius: 3px;
+        }
+
+        .chat-message {
+            display: flex;
+            gap: 8px;
+            animation: messageSlide 0.3s ease;
+        }
+
+        @keyframes messageSlide {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .chat-message.user {
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .message-avatar.bot {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .message-avatar.user {
+            background: #e2e8f0;
+            color: #4a5568;
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 16px;
+            word-wrap: break-word;
+        }
+
+        .message-content.bot {
+            background: white;
+            color: #2d3748;
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .message-content.user {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message-time {
+            font-size: 11px;
+            opacity: 0.6;
+            margin-top: 4px;
+        }
+
+        /* Typing Indicator */
+        .typing-indicator {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 16px;
+            background: white;
+            border-radius: 16px;
+            width: fit-content;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .typing-indicator.active {
+            display: flex;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #cbd5e0;
+            animation: typingBounce 1.4s infinite;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typingBounce {
+            0%, 60%, 100% {
+                transform: translateY(0);
+            }
+            30% {
+                transform: translateY(-10px);
+            }
+        }
+
+        /* Chat Input */
+        .chat-input-container {
+            padding: 16px 20px;
+            background: white;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .chat-input-wrapper {
+            display: flex;
+            gap: 8px;
+            align-items: flex-end;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 24px;
+            font-family: inherit;
+            font-size: 14px;
+            resize: none;
+            outline: none;
+            max-height: 120px;
+            min-height: 44px;
+            transition: border-color 0.2s ease;
+        }
+
+        .chat-input:focus {
+            border-color: #667eea;
+        }
+
+        .chat-send-button {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s ease, opacity 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .chat-send-button:hover:not(:disabled) {
+            transform: scale(1.05);
+        }
+
+        .chat-send-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .chat-send-button svg {
+            width: 20px;
+            height: 20px;
+            fill: white;
+        }
+
+        /* Welcome Message */
+        .welcome-message {
+            text-align: center;
+            padding: 40px 20px;
+            color: #718096;
+        }
+
+        .welcome-message h4 {
+            color: #2d3748;
+            margin-bottom: 8px;
+            font-size: 18px;
+        }
+
+        .welcome-message p {
+            font-size: 14px;
+        }
+
+        /* Error Message */
+        .error-message {
+            background: #fed7d7;
+            color: #c53030;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            margin: 8px 20px;
+            animation: messageSlide 0.3s ease;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 480px) {
+            .chat-window {
+                width: calc(100vw - 40px);
+                height: calc(100vh - 40px);
+            }
+
+            .chat-window.fullscreen {
+                width: 100vw;
+                height: 100vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-widget">
+        <!-- Chat Button -->
+        <button class="chat-button" id="chatButton" aria-label="Open chat">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
+            </svg>
+        </button>
+
+        <!-- Chat Window -->
+        <div class="chat-window" id="chatWindow">
+            <!-- Header -->
+            <div class="chat-header" id="chatHeader">
+                <div class="chat-header-content">
+                    <div class="chat-avatar">🤖</div>
+                    <div class="chat-header-text">
+                        <h3>Asystent AI</h3>
+                        <p>Online</p>
+                    </div>
+                </div>
+                <div class="chat-header-actions">
+                    <button class="chat-header-button" id="fullscreenButton" aria-label="Fullscreen">
+                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
+                        </svg>
+                    </button>
+                    <button class="chat-header-button" id="closeButton" aria-label="Close">
+                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Messages -->
+            <div class="chat-messages" id="chatMessages">
+                <div class="welcome-message">
+                    <h4>Witaj! 👋</h4>
+                    <p>Jestem Twoim asystentem AI. Jak mogę Ci dzisiaj pomóc?</p>
+                </div>
+            </div>
+
+            <!-- Input -->
+            <div class="chat-input-container">
+                <div class="chat-input-wrapper">
+                    <textarea
+                        class="chat-input"
+                        id="chatInput"
+                        placeholder="Wpisz wiadomość..."
+                        rows="1"
+                    ></textarea>
+                    <button class="chat-send-button" id="sendButton" aria-label="Send message">
+                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Resize Handles -->
+            <div class="resize-handle resize-handle-left" id="resizeLeft"></div>
+            <div class="resize-handle resize-handle-right" id="resizeRight"></div>
+            <div class="resize-handle resize-handle-top" id="resizeTop"></div>
+            <div class="resize-handle resize-handle-bottom" id="resizeBottom"></div>
+            <div class="resize-handle resize-handle-corner-tl" id="resizeCornerTL"></div>
+            <div class="resize-handle resize-handle-corner-tr" id="resizeCornerTR"></div>
+            <div class="resize-handle resize-handle-corner-bl" id="resizeCornerBL"></div>
+            <div class="resize-handle resize-handle-corner-br" id="resizeCornerBR"></div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const CONFIG = {
+            // Replace with your n8n webhook URL
+            webhookUrl: 'https://n8n.aimarketingmasters.pl/webhook/e4ec00c3-9761-40de-92d2-8083d3c11218',
+            // Optional: Add any additional headers or configuration
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        };
+
+        // DOM Elements
+        const chatButton = document.getElementById('chatButton');
+        const chatWindow = document.getElementById('chatWindow');
+        const chatHeader = document.getElementById('chatHeader');
+        const closeButton = document.getElementById('closeButton');
+        const fullscreenButton = document.getElementById('fullscreenButton');
+        const chatMessages = document.getElementById('chatMessages');
+        const chatInput = document.getElementById('chatInput');
+        const sendButton = document.getElementById('sendButton');
+        const resizeLeft = document.getElementById('resizeLeft');
+        const resizeRight = document.getElementById('resizeRight');
+        const resizeTop = document.getElementById('resizeTop');
+        const resizeBottom = document.getElementById('resizeBottom');
+        const resizeCornerTL = document.getElementById('resizeCornerTL');
+        const resizeCornerTR = document.getElementById('resizeCornerTR');
+        const resizeCornerBL = document.getElementById('resizeCornerBL');
+        const resizeCornerBR = document.getElementById('resizeCornerBR');
+
+        // State
+        let isFullscreen = false;
+        let isResizing = false;
+        let resizeType = null;
+        let isDragging = false;
+        let startX = 0;
+        let startY = 0;
+        let startWidth = 0;
+        let startHeight = 0;
+        let startLeft = 0;
+        let startTop = 0;
+
+        // Save position/size before fullscreen
+        let beforeFullscreenWidth = '';
+        let beforeFullscreenHeight = '';
+        let beforeFullscreenLeft = '';
+        let beforeFullscreenTop = '';
+
+        // Resize constraints
+        const MIN_WIDTH = 320;
+        const MIN_HEIGHT = 400;
+        const MAX_WIDTH = window.innerWidth;
+        const MAX_HEIGHT = window.innerHeight;
+
+        // Initialize chat window position
+        function initializeChatPosition() {
+            if (!chatWindow.style.left && !chatWindow.style.right) {
+                // Position in bottom-right by default
+                const rect = chatWindow.getBoundingClientRect();
+                chatWindow.style.left = (window.innerWidth - rect.width - 20) + 'px';
+                chatWindow.style.top = (window.innerHeight - rect.height - 20) + 'px';
+                chatWindow.style.right = 'auto';
+                chatWindow.style.bottom = 'auto';
+            }
+        }
+
+        // Event Listeners
+        chatButton.addEventListener('click', openChat);
+        closeButton.addEventListener('click', closeChat);
+        fullscreenButton.addEventListener('click', toggleFullscreen);
+        sendButton.addEventListener('click', sendMessage);
+        chatInput.addEventListener('keydown', handleKeyDown);
+        chatInput.addEventListener('input', autoResizeTextarea);
+
+        // Resize event listeners
+        resizeLeft.addEventListener('mousedown', (e) => startResize(e, 'left'));
+        resizeRight.addEventListener('mousedown', (e) => startResize(e, 'right'));
+        resizeTop.addEventListener('mousedown', (e) => startResize(e, 'top'));
+        resizeBottom.addEventListener('mousedown', (e) => startResize(e, 'bottom'));
+        resizeCornerTL.addEventListener('mousedown', (e) => startResize(e, 'top-left'));
+        resizeCornerTR.addEventListener('mousedown', (e) => startResize(e, 'top-right'));
+        resizeCornerBL.addEventListener('mousedown', (e) => startResize(e, 'bottom-left'));
+        resizeCornerBR.addEventListener('mousedown', (e) => startResize(e, 'bottom-right'));
+        document.addEventListener('mousemove', doResize);
+        document.addEventListener('mouseup', stopResize);
+
+        // Drag to move event listeners
+        chatHeader.addEventListener('mousedown', startDrag);
+        document.addEventListener('mousemove', doDrag);
+        document.addEventListener('mouseup', stopDrag);
+
+        // Open Chat
+        function openChat() {
+            chatWindow.classList.add('open');
+            chatButton.style.display = 'none';
+            initializeChatPosition(); // Set initial position
+            chatInput.focus();
+        }
+
+        // Close Chat
+        function closeChat() {
+            chatWindow.classList.remove('open');
+            chatButton.style.display = 'flex';
+            if (isFullscreen) {
+                toggleFullscreen();
+            }
+        }
+
+        // Toggle Fullscreen
+        function toggleFullscreen() {
+            isFullscreen = !isFullscreen;
+            chatWindow.classList.toggle('fullscreen');
+
+            if (isFullscreen) {
+                // Save current position and size before entering fullscreen
+                beforeFullscreenWidth = chatWindow.style.width;
+                beforeFullscreenHeight = chatWindow.style.height;
+                beforeFullscreenLeft = chatWindow.style.left;
+                beforeFullscreenTop = chatWindow.style.top;
+
+                // Remove inline styles to allow CSS fullscreen to work
+                chatWindow.style.width = '';
+                chatWindow.style.height = '';
+                chatWindow.style.left = '';
+                chatWindow.style.top = '';
+            } else {
+                // Restore previous position and size when exiting fullscreen
+                chatWindow.style.width = beforeFullscreenWidth;
+                chatWindow.style.height = beforeFullscreenHeight;
+                chatWindow.style.left = beforeFullscreenLeft;
+                chatWindow.style.top = beforeFullscreenTop;
+            }
+
+            // Update fullscreen icon
+            const icon = isFullscreen
+                ? '<path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/>'
+                : '<path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>';
+
+            fullscreenButton.querySelector('svg').innerHTML = icon;
+        }
+
+        // Resize Functions
+        function startResize(e, type) {
+            if (isFullscreen) return; // Disable resize in fullscreen
+
+            e.preventDefault();
+            e.stopPropagation();
+
+            isResizing = true;
+            resizeType = type;
+            startX = e.clientX;
+            startY = e.clientY;
+            startWidth = chatWindow.offsetWidth;
+            startHeight = chatWindow.offsetHeight;
+            startLeft = parseInt(chatWindow.style.left) || chatWindow.offsetLeft;
+            startTop = parseInt(chatWindow.style.top) || chatWindow.offsetTop;
+
+            // Disable transition during resize
+            chatWindow.style.transition = 'none';
+
+            // Add user-select: none to prevent text selection during resize
+            document.body.style.userSelect = 'none';
+        }
+
+        function doResize(e) {
+            if (!isResizing) return;
+
+            e.preventDefault();
+
+            const deltaX = e.clientX - startX;
+            const deltaY = e.clientY - startY;
+
+            let newWidth = startWidth;
+            let newHeight = startHeight;
+            let newLeft = startLeft;
+            let newTop = startTop;
+
+            // Calculate new dimensions based on resize type
+            switch(resizeType) {
+                case 'left':
+                    newWidth = startWidth - deltaX;
+                    newLeft = startLeft + deltaX;
+                    break;
+
+                case 'right':
+                    newWidth = startWidth + deltaX;
+                    break;
+
+                case 'top':
+                    newHeight = startHeight - deltaY;
+                    newTop = startTop + deltaY;
+                    break;
+
+                case 'bottom':
+                    newHeight = startHeight + deltaY;
+                    break;
+
+                case 'top-left':
+                    newWidth = startWidth - deltaX;
+                    newHeight = startHeight - deltaY;
+                    newLeft = startLeft + deltaX;
+                    newTop = startTop + deltaY;
+                    break;
+
+                case 'top-right':
+                    newWidth = startWidth + deltaX;
+                    newHeight = startHeight - deltaY;
+                    newTop = startTop + deltaY;
+                    break;
+
+                case 'bottom-left':
+                    newWidth = startWidth - deltaX;
+                    newHeight = startHeight + deltaY;
+                    newLeft = startLeft + deltaX;
+                    break;
+
+                case 'bottom-right':
+                    newWidth = startWidth + deltaX;
+                    newHeight = startHeight + deltaY;
+                    break;
+            }
+
+            // Apply constraints
+            newWidth = Math.max(MIN_WIDTH, newWidth);
+            newHeight = Math.max(MIN_HEIGHT, newHeight);
+
+            // Apply new dimensions and position
+            chatWindow.style.width = newWidth + 'px';
+            chatWindow.style.height = newHeight + 'px';
+            chatWindow.style.left = newLeft + 'px';
+            chatWindow.style.top = newTop + 'px';
+        }
+
+        function stopResize() {
+            if (!isResizing) return;
+
+            isResizing = false;
+            resizeType = null;
+
+            // Re-enable transition
+            chatWindow.style.transition = '';
+
+            // Re-enable text selection
+            document.body.style.userSelect = '';
+        }
+
+        // Drag to Move Functions
+        function startDrag(e) {
+            if (isFullscreen) return; // Disable drag in fullscreen
+            if (e.target.closest('button')) return; // Don't drag when clicking buttons
+
+            isDragging = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            startLeft = parseInt(chatWindow.style.left) || chatWindow.offsetLeft;
+            startTop = parseInt(chatWindow.style.top) || chatWindow.offsetTop;
+
+            // Disable transition during drag
+            chatWindow.style.transition = 'none';
+
+            // Add user-select: none to prevent text selection during drag
+            document.body.style.userSelect = 'none';
+
+            // Change cursor
+            chatHeader.style.cursor = 'grabbing';
+        }
+
+        function doDrag(e) {
+            if (!isDragging) return;
+
+            e.preventDefault();
+
+            const deltaX = e.clientX - startX;
+            const deltaY = e.clientY - startY;
+
+            const newLeft = startLeft + deltaX;
+            const newTop = startTop + deltaY;
+
+            chatWindow.style.left = newLeft + 'px';
+            chatWindow.style.top = newTop + 'px';
+        }
+
+        function stopDrag() {
+            if (!isDragging) return;
+
+            isDragging = false;
+
+            // Re-enable transition
+            chatWindow.style.transition = '';
+
+            // Re-enable text selection
+            document.body.style.userSelect = '';
+
+            // Reset cursor
+            chatHeader.style.cursor = 'grab';
+        }
+
+        // Handle Enter Key
+        function handleKeyDown(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        }
+
+        // Auto-resize Textarea
+        function autoResizeTextarea() {
+            chatInput.style.height = 'auto';
+            chatInput.style.height = Math.min(chatInput.scrollHeight, 120) + 'px';
+        }
+
+        // Extract message from n8n response (supports multiple formats)
+        function extractBotMessage(data) {
+            // If data is an array, get the first element
+            if (Array.isArray(data) && data.length > 0) {
+                data = data[0];
+            }
+
+            // Try different field names that n8n might return
+            return data.response ||
+                   data.message ||
+                   data.output ||
+                   data.text ||
+                   data.reply ||
+                   (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || // OpenAI format
+                   'Przepraszam, nie otrzymałem odpowiedzi.';
+        }
+
+        // Send Message
+        async function sendMessage() {
+            const message = chatInput.value.trim();
+
+            if (!message) return;
+
+            // Check if webhook URL is configured
+            if (CONFIG.webhookUrl === 'YOUR_N8N_WEBHOOK_URL_HERE') {
+                showError('Webhook URL nie został skonfigurowany. Ustaw CONFIG.webhookUrl w kodzie.');
+                return;
+            }
+
+            // Disable input while sending
+            chatInput.disabled = true;
+            sendButton.disabled = true;
+
+            // Add user message
+            addMessage(message, 'user');
+
+            // Clear input
+            chatInput.value = '';
+            chatInput.style.height = 'auto';
+
+            // Show typing indicator
+            const typingIndicator = showTypingIndicator();
+
+            try {
+                // Send to n8n webhook
+                const response = await fetch(CONFIG.webhookUrl, {
+                    method: 'POST',
+                    headers: CONFIG.headers,
+                    body: JSON.stringify({
+                        message: message,
+                        timestamp: new Date().toISOString(),
+                        sessionId: getSessionId()
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                // Remove typing indicator
+                typingIndicator.remove();
+
+                // Add bot response (supports multiple n8n response formats)
+                const botMessage = extractBotMessage(data);
+                addMessage(botMessage, 'bot');
+
+            } catch (error) {
+                console.error('Error sending message:', error);
+                typingIndicator.remove();
+                showError('Wystąpił błąd podczas wysyłania wiadomości. Spróbuj ponownie.');
+            } finally {
+                // Re-enable input
+                chatInput.disabled = false;
+                sendButton.disabled = false;
+                chatInput.focus();
+            }
+        }
+
+        // Add Message to Chat
+        function addMessage(text, sender) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `chat-message ${sender}`;
+
+            const avatar = document.createElement('div');
+            avatar.className = `message-avatar ${sender}`;
+            avatar.textContent = sender === 'bot' ? '🤖' : '👤';
+
+            const content = document.createElement('div');
+            content.className = `message-content ${sender}`;
+
+            // Simple text formatting
+            content.innerHTML = formatMessage(text);
+
+            const time = document.createElement('div');
+            time.className = 'message-time';
+            time.textContent = getCurrentTime();
+            content.appendChild(time);
+
+            messageDiv.appendChild(avatar);
+            messageDiv.appendChild(content);
+
+            // Remove welcome message if present
+            const welcomeMessage = chatMessages.querySelector('.welcome-message');
+            if (welcomeMessage) {
+                welcomeMessage.remove();
+            }
+
+            chatMessages.appendChild(messageDiv);
+            scrollToBottom();
+        }
+
+        // Format Message (basic markdown-like formatting)
+        function formatMessage(text) {
+            return text
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/\n/g, '<br>');
+        }
+
+        // Show Typing Indicator
+        function showTypingIndicator() {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'chat-message bot';
+
+            const avatar = document.createElement('div');
+            avatar.className = 'message-avatar bot';
+            avatar.textContent = '🤖';
+
+            const indicator = document.createElement('div');
+            indicator.className = 'typing-indicator active';
+            indicator.innerHTML = `
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+            `;
+
+            messageDiv.appendChild(avatar);
+            messageDiv.appendChild(indicator);
+            chatMessages.appendChild(messageDiv);
+            scrollToBottom();
+
+            return messageDiv;
+        }
+
+        // Show Error Message
+        function showError(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.textContent = message;
+
+            chatMessages.appendChild(errorDiv);
+            scrollToBottom();
+
+            // Remove error after 5 seconds
+            setTimeout(() => {
+                errorDiv.remove();
+            }, 5000);
+        }
+
+        // Scroll to Bottom
+        function scrollToBottom() {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Get Current Time
+        function getCurrentTime() {
+            const now = new Date();
+            return now.toLocaleTimeString('pl-PL', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        // Get or Create Session ID
+        function getSessionId() {
+            let sessionId = sessionStorage.getItem('chatSessionId');
+            if (!sessionId) {
+                sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                sessionStorage.setItem('chatSessionId', sessionId);
+            }
+            return sessionId;
+        }
+
+        // Initialize
+        console.log('AI Chat Widget initialized');
+        console.log('Session ID:', getSessionId());
+    </script>
+</body>
+</html>
