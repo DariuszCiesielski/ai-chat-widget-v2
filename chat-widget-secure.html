@@ -1,0 +1,372 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -4272,
+        -480
+      ],
+      "id": "9629880d-c523-46da-96b6-c4ad38868f9f",
+      "name": "Respond to Webhook1",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "e4ec00c3-9761-40de-92d2-8083d3c11218",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -4288,
+        -304
+      ],
+      "id": "fc96f5b9-8613-47d0-af44-83b7999d13a5",
+      "name": "Webhook",
+      "webhookId": "e4ec00c3-9761-40de-92d2-8083d3c11218",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "content": "# TERMA_MAX RAG Agent with Dynamic Hybrid Search & Context Expansion",
+        "height": 648,
+        "width": 1052,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -3760,
+        -272
+      ],
+      "id": "d2ded396-d36b-4280-a4d3-439596eb714a",
+      "name": "Sticky Note7"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.chatInput }}",
+        "options": {
+          "systemMessage": "=# Role\n\nYou are an AI assistant responding to a user's query based on the information avaialble in the knowledgebase.\n\n# Goal\n\nYou are tasked with creating and executing a retrieval strategy to best answer the users question.\n\nThe output should be a well-reserached response to the users query based on the output from these tools and to follow the Operating Procedures and Response Rules as set about below.\n\nYou must consider both the conversation history and the current query.\n\nYour goal is to provide a fully grounded, accurate answer based on the output from these tools ONLY.\n\n# Standard Operating Procedure\n\n1. Based on your retrieval strategy, pass relevant query(s) to the dynamic hybrid search to narrow the search and retrieve candidate chunks\n2. Based on the most relevant chunk(s); Trigger the Fetch Document Hierarchy Tool to load the source Documents Structure\n3. Based on this document structure (which includes chunk ranges) along with any relevant child_ranges and parent_ranges from the retrieved chunks, trigger the Context Expansion tool to expand your insight into the document.\n\nOnce you've collected enough information, then answer the question, based on the info in context.\n\n# Response Rules\n\n- Ideal target format and length: Multiple Paragraphs\n- Use markdown formatting with appropriate section headings\n- Please respond in the same language as the user's question.\n- If there are images provided from the retrieved information, you should return this in markdown format.\n- Ensure the response maintains continuity with the conversation history.\n- List between 1-5 important reference sources at the end under \"References\" section. Provide Document Names and Page Numbers that these sources appear in the documents - this is in the chunk metadata.\n- Do not make anything up. \n- Do not include information not provided by the Knowledge Bases.\n- If you cannot answer the question using the provided information or if no information is returned from the tools, say \"Sorry I don't know\".",
+          "returnIntermediateSteps": true
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        -3424,
+        -112
+      ],
+      "id": "0137ee1c-b3e6-4a4e-9c55-b7950f08dc38",
+      "name": "Agentic RAG ",
+      "retryOnFail": true,
+      "maxTries": 5
+    },
+    {
+      "parameters": {
+        "toolDescription": "Based on the most promising chunks retrieved from the knowledgebase, use this tool to expand out the context by fetching neighbouring chunks, parent chunks etc\n\nThe body of this call must be in this format and the values you need are in the chunk metadata. You can retrieve chunks from one or multiple documents if you like\n[\n    {\n      doc_id: \"doc-id-12345-abcde\",\n      chunk_ranges: [[0, 5]]\n    },\n    {\n      doc_id: \"another-doc-id-12345\",\n      chunk_ranges: [[10, 15], [20, 25]]\n    }\n  ]\n",
+        "method": "POST",
+        "url": "https://rdjstyoupdxuxolokmud.supabase.co/functions/v1/context-expansion",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('JSON', ``, 'json') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.2,
+      "position": [
+        -2880,
+        144
+      ],
+      "id": "1ed6bcff-1082-49f9-81e1-485333136b70",
+      "name": "Context Expansion3",
+      "credentials": {
+        "supabaseApi": {
+          "id": "0WmOjOVuJaFnodjp",
+          "name": "SOTA TermaMax"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "record_manager_v2",
+        "limit": 1,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "doc_id",
+              "condition": "eq",
+              "keyValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('conditions0_Field_Value', ``, 'string') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        -3056,
+        144
+      ],
+      "id": "6f9ba4ba-dd2f-40a1-846c-1f7ecb7ab56a",
+      "name": "Fetch Document Hierarchy3",
+      "credentials": {
+        "supabaseApi": {
+          "id": "0WmOjOVuJaFnodjp",
+          "name": "SOTA TermaMax"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "claude-sonnet-4-5-20250929",
+          "mode": "list",
+          "cachedResultName": "Claude Sonnet 4.5"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        -3552,
+        144
+      ],
+      "id": "0167d90d-5682-49c6-a7f1-944d0f03cc71",
+      "name": "Anthropic Chat Model3",
+      "credentials": {
+        "anthropicApi": {
+          "id": "fEByR0QRaehEiLgV",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.sessionId }}",
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        -3376,
+        144
+      ],
+      "id": "d319ebc5-f96b-4fb2-ac49-c50d7a137044",
+      "name": "Supabase Short-Term Memory4",
+      "credentials": {
+        "postgres": {
+          "id": "b5Hw5SjOWFiV7b3g",
+          "name": "SOTA TermaMax"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -4176,
+        48
+      ],
+      "id": "c5a9b78a-f015-4f10-970e-95b47e862928",
+      "name": "When chat message received",
+      "webhookId": "f77e070b-6e97-41c0-a8d3-0f031d80b098"
+    },
+    {
+      "parameters": {
+        "description": "=Call this tool to query data from our knowledgebase using hybrid search (vector, lexical, ilike and fuzzy)\n\nYou can set different weights of this hybrid search depending on the type of query.\n\ndense_weight float DEFAULT 0.5,\nsparse_weight float DEFAULT 0.5,\nilike_weight float DEFAULT 0\nfuzzy_weight float DEFAULT 0\nfuzzy_threshold float DEFAULT 0.8\n\nFor semantic natural lanauge queries you can prioritise dense embeddings, \nFor technical terms and more traditional search you can priorize sparse lexical search\nFor exact matches for codes and IDs you can prioritze ilike wildcard matching\nFor typos that aren't picked up by semantic search, you can prioritize fuzzy matching\n\nIf looking for matches via ilike or fuzzy matches, the query should be extremely focused and short, as otherwise it will likely return zero results. (e.g. exact ID or code)\n\nAs pattern matching and fuzzy matching can add latency, I recommend defaulting this to zero unless you want to actually use it.\n\nTotal of the 4 weights much equal 1\n\nFuzzy Threshold adds significant latency should should be as high as possible - Default to 0.8",
+        "workflowId": {
+          "__rl": true,
+          "value": "sIYqut34phjCHDmh",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/sIYqut34phjCHDmh",
+          "cachedResultName": "SOTA TermaMax Hybrid Search"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "query": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('query', ``, 'string') }}",
+            "session_id": "={{ $json.sessionId }}",
+            "type": "hybrid",
+            "dense_weight": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('dense_weight', ``, 'number') }}",
+            "sparse_weight": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('sparse_weight', ``, 'number') }}",
+            "ilike_weight": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('ilike_weight', ``, 'number') }}",
+            "fuzzy_weight": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fuzzy_weight', ``, 'number') }}",
+            "fuzzy_threshold": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fuzzy_threshold', ``, 'number') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "query",
+              "displayName": "query",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "type",
+              "displayName": "type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "session_id",
+              "displayName": "session_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "dense_weight",
+              "displayName": "dense_weight",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number"
+            },
+            {
+              "id": "sparse_weight",
+              "displayName": "sparse_weight",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number"
+            },
+            {
+              "id": "ilike_weight",
+              "displayName": "ilike_weight",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number"
+            },
+            {
+              "id": "fuzzy_weight",
+              "displayName": "fuzzy_weight",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number"
+            },
+            {
+              "id": "fuzzy_threshold",
+              "displayName": "fuzzy_threshold",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        -3232,
+        144
+      ],
+      "id": "e5484382-6c4a-46e4-be88-488f55bb0db8",
+      "name": "Dynamic Hybrid Search5"
+    }
+  ],
+  "connections": {
+    "Context Expansion3": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agentic RAG ",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Document Hierarchy3": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agentic RAG ",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Chat Model3": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Agentic RAG ",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase Short-Term Memory4": {
+      "ai_memory": [
+        [
+          {
+            "node": "Agentic RAG ",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Agentic RAG ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dynamic Hybrid Search5": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agentic RAG ",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ec64976a0c46f3969fd3c5b8b20605022a6eddbb7cbfbdcc2300ac0ab6d067a0"
+  }
+}
